@@ -1,2 +1,2 @@
-pygame
-pygame-chess-api
+pygame~=2.6.1
+chess~=1.11.2
