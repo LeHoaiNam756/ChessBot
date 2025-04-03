@@ -2,15 +2,14 @@ import pygame
 import chess
 import chess.engine
 
-# Khởi tạo pygame
+from minmax import get_best_move
+
 pygame.init()
 
-# Cấu hình màn hình
 WIDTH, HEIGHT = 600, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Chess Game")
 
-# Load hình ảnh quân cờ
 piece_images = {}
 for piece in chess.PIECE_SYMBOLS[1:]:
     piece_images[piece] = pygame.image.load(f'assets/{piece}_white.png')
@@ -20,13 +19,11 @@ highlight_image = pygame.image.load("assets/square_of_highlight.png")
 kill_highlight_image = pygame.image.load("assets/square_of_kill.png")
 check_highlight_image = pygame.image.load("assets/square_of_in_check.png")
 
-# Chế độ chơi
 HUMAN_VS_HUMAN = 1
 HUMAN_VS_BOT = 2
 BOT_VS_BOT = 3
 
-mode = HUMAN_VS_HUMAN  # Chọn chế độ mặc định
-
+mode = HUMAN_VS_HUMAN
 # Load engine cho bot
 # engine = chess.engine.SimpleEngine.popen_uci("stockfish")
 
@@ -61,13 +58,7 @@ def draw_board(board, highlighted_squares={}):
     pygame.display.flip()
 
 
-# def get_best_move(board):
-#     result = engine.play(board, chess.engine.Limit(time=0.5))
-#     return result.move
-
-
-def main():
-    global mode
+def play_human_vs_human():
     board = chess.Board()
     running = True
     selected_square = None
@@ -82,7 +73,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and mode != BOT_VS_BOT:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
                 col, row = x // (WIDTH // 8), 7 - (y // (HEIGHT // 8))
                 square = chess.square(col, row)
@@ -104,16 +95,130 @@ def main():
                     selected_square = None
                     highlighted_squares = {}
 
-    #                 if mode == HUMAN_VS_BOT and not board.is_game_over():
-    #                     bot_move = get_best_move(board)
-    #                     board.push(bot_move)
-    #
-    #     if mode == BOT_VS_BOT and not board.is_game_over():
-    #         board.push(get_best_move(board))
-    #         pygame.time.delay(500)
-    #
-    # engine.quit()
     pygame.quit()
+
+
+def play_human_vs_bot(bot_color=chess.BLACK):
+    board = chess.Board()
+    running = True
+    selected_square = None
+    highlighted_squares = {}
+
+    if bot_color == chess.WHITE:
+        bot_move = get_best_move(board)
+        board.push(bot_move)
+
+    while running:
+        highlighted_squares.clear()
+        if board.is_check():
+            king_square = board.king(board.turn)
+            highlighted_squares[king_square] = "check"
+
+        draw_board(board, highlighted_squares)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and board.turn != bot_color:
+                x, y = pygame.mouse.get_pos()
+                col = x // (WIDTH // 8)
+                row = 7 - (y // (HEIGHT // 8))
+                square = chess.square(col, row)
+
+                if selected_square is None:
+                    piece = board.piece_at(square)
+                    if piece and piece.color == board.turn:
+                        selected_square = square
+                        for move in board.legal_moves:
+                            if move.from_square == selected_square:
+                                key = "kill" if board.piece_at(move.to_square) else "move"
+                                highlighted_squares[move.to_square] = key
+                else:
+                    move = chess.Move(selected_square, square)
+                    if move not in board.legal_moves:
+                        move = chess.Move(selected_square, square, promotion=chess.QUEEN)
+
+                    if move in board.legal_moves:
+                        board.push(move)
+                        if not board.is_game_over():
+                            bot_move = get_best_move(board)
+                            board.push(bot_move)
+                            highlighted_squares.clear()
+                            if board.is_check():
+                                king_square = board.king(board.turn)
+                                highlighted_squares[king_square] = "check"
+
+                    selected_square = None
+
+        if board.is_game_over():
+            print("Game Over!", board.result())
+            running = False
+
+    pygame.quit()
+
+
+def play_bot_vs_bot(delay=10000):
+    board = chess.Board()
+    running = True
+
+    while running:
+        draw_board(board)
+
+        if not board.is_game_over():
+            bot_move = get_best_move(board)
+            board.push(bot_move)
+            pygame.time.delay(delay)
+        else:
+            print("Game Over!", board.result())
+            running = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+    pygame.quit()
+
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+    font = pygame.font.SysFont("Arial", 30)
+    options = [
+        ("Human vs Human", HUMAN_VS_HUMAN),
+        ("Human vs Bot", HUMAN_VS_BOT),
+        ("Bot vs Bot", BOT_VS_BOT)
+    ]
+    selected = 0
+
+    while True:
+        screen.fill((255, 255, 255))
+        for i, (text, _) in enumerate(options):
+            color = (0, 0, 255) if i == selected else (0, 0, 0)
+            text_surface = font.render(text, True, color)
+            screen.blit(text_surface, (50, 50 + i * 50))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_DOWN:
+                    selected = (selected + 1) % len(options)
+                elif event.key == pygame.K_UP:
+                    selected = (selected - 1) % len(options)
+                elif event.key == pygame.K_RETURN:
+                    _, mode = options[selected]
+                    if mode == HUMAN_VS_HUMAN:
+                        play_human_vs_human()
+                    elif mode == HUMAN_VS_BOT:
+                        play_human_vs_bot(chess.WHITE)
+                    elif mode == BOT_VS_BOT:
+                        play_bot_vs_bot()
+                    return
 
 
 if __name__ == "__main__":
