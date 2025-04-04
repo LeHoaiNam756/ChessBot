@@ -98,58 +98,47 @@ def play_human_vs_human():
     pygame.quit()
 
 
-def play_human_vs_bot(bot_color=chess.BLACK):
+def play_human_vs_bot(bot_color=chess.WHITE):
     board = chess.Board()
     running = True
     selected_square = None
     highlighted_squares = {}
 
-    if bot_color == chess.WHITE:
-        bot_move = get_best_move(board)
-        board.push(bot_move)
-
     while running:
-        highlighted_squares.clear()
         if board.is_check():
             king_square = board.king(board.turn)
             highlighted_squares[king_square] = "check"
 
         draw_board(board, highlighted_squares)
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
             elif event.type == pygame.MOUSEBUTTONDOWN and board.turn != bot_color:
                 x, y = pygame.mouse.get_pos()
-                col = x // (WIDTH // 8)
-                row = 7 - (y // (HEIGHT // 8))
+                col, row = x // (WIDTH // 8), 7 - (y // (HEIGHT // 8))
                 square = chess.square(col, row)
 
                 if selected_square is None:
-                    piece = board.piece_at(square)
-                    if piece and piece.color == board.turn:
-                        selected_square = square
-                        for move in board.legal_moves:
-                            if move.from_square == selected_square:
-                                key = "kill" if board.piece_at(move.to_square) else "move"
-                                highlighted_squares[move.to_square] = key
+                    selected_square = square
+                    highlighted_squares = {}
+                    for move in board.legal_moves:
+                        if move.from_square == selected_square:
+                            if board.piece_at(move.to_square):
+                                highlighted_squares[move.to_square] = "kill"
+                            else:
+                                highlighted_squares[move.to_square] = "move"
+
                 else:
                     move = chess.Move(selected_square, square)
-                    if move not in board.legal_moves:
-                        move = chess.Move(selected_square, square, promotion=chess.QUEEN)
-
                     if move in board.legal_moves:
                         board.push(move)
-                        if not board.is_game_over():
-                            bot_move = get_best_move(board)
-                            board.push(bot_move)
-                            highlighted_squares.clear()
-                            if board.is_check():
-                                king_square = board.king(board.turn)
-                                highlighted_squares[king_square] = "check"
-
                     selected_square = None
+                    highlighted_squares = {}
+            draw_board(board, highlighted_squares)
+
+        if board.turn == bot_color and not board.is_game_over():
+            bot_move = get_best_move(board)
+            board.push(bot_move)
 
         if board.is_game_over():
             print("Game Over!", board.result())
