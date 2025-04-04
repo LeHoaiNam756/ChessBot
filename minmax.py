@@ -78,6 +78,85 @@ def get_position_scores_table(piece_type, piece_color):
 
 piece_score = {6: 6000, 5: 929, 4: 512, 3: 320, 2: 280, 1: 100}
 
+
+def static_exchange_evaluation(board, move):
+    """Tính toán Static Exchange Evaluation (SEE) cho một nước đi"""
+    to_square = move.to_square
+
+    # Lấy quân bị bắt (nếu có)
+    captured_piece = board.piece_at(to_square)
+    if not captured_piece:
+        return 0  # Không có quân bị bắt, SEE = 0
+
+    victim_value = piece_score.get(captured_piece.piece_type)
+
+    # Giả lập nước đi
+    board.push(move)
+
+    # Kiểm tra quân nào có thể bắt lại
+    attackers = board.attackers(not board.turn, to_square)
+    if attackers:
+        # Chọn quân bắt yếu nhất trong danh sách
+        weakest_attacker = min(attackers, key=lambda sq: piece_score.get(board.piece_at(sq).piece_type)) 
+        attacker_value = piece_score.get(board.piece_at(weakest_attacker).piece_type)
+    else:
+        attacker_value = 0  # Không bị bắt lại
+
+    # Hoàn tác nước đi
+    board.pop()
+
+    # Giá trị SEE = Giá trị quân bị bắt - Giá trị quân bị hy sinh
+    return victim_value - attacker_value
+
+
+def mvv_lva_score(board, move):
+    """Tính điểm theo Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)"""
+    if board.is_capture(move):
+        captured_piece = board.piece_at(move.to_square)
+        attacker_piece = board.piece_at(move.from_square)
+
+        victim_value = piece_score.get(captured_piece.piece_type, 0) if captured_piece else 0
+        attacker_value = piece_score.get(attacker_piece.piece_type, 0) if attacker_piece else 0
+
+        return (victim_value * 10) - attacker_value  # Ưu tiên bắt quân giá trị cao với quân giá trị thấp
+    elif move.promotion:
+        return 100  # Phong cấp có giá trị cao
+    return 0
+
+
+killer_moves = {}  # Lưu nước đi Killer Move theo độ sâu tìm kiếm
+history_heuristic = {}  # Lưu điểm History Heuristic cho từng nước đi
+
+def order_moves(board, depth):
+    """Sắp xếp nước đi theo MVV-LVA + SEE"""
+    moves = list(board.legal_moves)
+    def move_score(move):
+        # Điểm MVV-LVA + SEE
+        score = (mvv_lva_score(board, move), static_exchange_evaluation(board, move))
+
+        # Ưu tiên nước đi chiếu vua
+        if board.gives_check(move):
+            score = (score[0] + 50, score[1])
+
+        # Ưu tiên nước đi phong cấp
+        if move.promotion:
+            score = (score[0] + 100, score[1])
+
+        # Nếu nước đi là Killer Move, tăng điểm ưu tiên
+        if depth in killer_moves and move in killer_moves[depth]:
+            score = (score[0] + 75, score[1])
+
+        # Nếu nước đi có điểm History Heuristic cao, ưu tiên hơn
+        if move in history_heuristic:
+            score = (score[0] + history_heuristic[move] // 10, score[1])
+
+        return score
+
+        # Sắp xếp nước đi theo điểm số
+
+    return sorted(moves, key=move_score, reverse=True)
+
+
 def evaluate_board(board):
     """Hàm đánh giá bàn cờ dựa trên giá trị quân cờ"""
     score = 0
@@ -144,6 +223,7 @@ def update_hash_key(board : chess.Board, move : chess.Move, old_hash : int):
 
 
 def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
+    global killer_moves, history_heuristic
     if (hash_key is None):
         hash_key = zobrist_hash(board)
 
@@ -162,7 +242,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
         transposition_tables[hash_key] = {'value' : value,'depth': 0 ,'flag' : 'exact'}
         return value
 
-    legal_moves = list(board.legal_moves)
+    legal_moves = order_moves(board, depth)
 
     if maximizing_player:
         max_eval = -float("inf")
@@ -171,9 +251,17 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
             board.push(move)
             eval_score = minimax(board, depth - 1, alpha, beta, False, new_hash_key, move)
             board.pop()
-            max_eval = max(max_eval, eval_score)
-            alpha = max(alpha, eval_score)
+            if eval_score > max_eval:
+                max_eval = eval_score
+
+            if eval_score > alpha:
+                alpha = eval_score
+                if depth not in killer_moves:
+                    killer_moves[depth] = []
+                killer_moves[depth].append(move)
+
             if beta <= alpha:
+                history_heuristic[move] = history_heuristic.get(move, 0) + depth ** 2
                 break
         if max_eval <= alpha:  # alpha không thay đổi, đây là upper bound
             flag = 'upper'
@@ -190,9 +278,16 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
             board.push(move)
             eval_score = minimax(board, depth - 1, alpha, beta, True, new_hash_key, move)
             board.pop()
-            min_eval = min(min_eval, eval_score)
-            beta = min(beta, eval_score)
+            if eval_score < min_eval:
+                min_eval = eval_score
+
+            if eval_score < beta:
+                beta = eval_score
+                if depth not in killer_moves:
+                    killer_moves[depth] = []
+                killer_moves[depth].append(move)
             if beta <= alpha:
+                history_heuristic[move] = history_heuristic.get(move, 0) + depth ** 2
                 break
 
         if min_eval <= alpha:  # alpha không thay đổi, đây là upper bound
@@ -206,7 +301,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
 
 
 
-MAX_TIME = 10
+MAX_TIME = 1
 
 def get_best_move(board, depth=4):
     """Tìm nước đi tốt nhất với Minimax, hoặc chọn nước đi ngẫu nhiên nếu hết thời gian"""
@@ -214,11 +309,13 @@ def get_best_move(board, depth=4):
     max_eval = -float("inf")
     alpha, beta = -float("inf"), float("inf")
     start_time = time.time()
-    for move in board.legal_moves:
+    legal_moves = order_moves(board, depth)
+    for move in legal_moves:
         # Kiểm tra nếu vượt quá thời gian giới hạn
         if time.time() - start_time > MAX_TIME:
-            print("Timeout reached! Taking a random move.")
-            return random.choice(list(board.legal_moves))  # Chọn nước đi ngẫu nhiên
+            # print("Timeout reached! Taking a random move.")
+            # return random.choice(list(board.legal_moves))  # Chọn nước đi ngẫu nhiên
+            break
 
         board.push(move)
         eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
