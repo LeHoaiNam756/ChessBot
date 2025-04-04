@@ -2,7 +2,7 @@ import pygame
 import chess
 import chess.engine
 
-from minmax import get_best_move
+from minmax import *
 
 pygame.init()
 
@@ -63,6 +63,7 @@ def play_human_vs_human():
     running = True
     selected_square = None
     highlighted_squares = {}
+
 
     while running:
         if board.is_check():
