@@ -12,12 +12,12 @@ pygame.display.set_caption("Chess Game")
 
 piece_images = {}
 for piece in chess.PIECE_SYMBOLS[1:]:
-    piece_images[piece] = pygame.image.load(f'assets/{piece}_white.png')
-    piece_images[piece.upper()] = pygame.image.load(f'assets/{piece}_black.png')
+    piece_images[piece] = pygame.image.load(f'assets/{piece}_black.png')
+    piece_images[piece.upper()] = pygame.image.load(f'assets/{piece}_white.png')
 
 highlight_image = pygame.image.load("assets/square_of_highlight.png")
 kill_highlight_image = pygame.image.load("assets/square_of_kill.png")
-check_highlight_image = pygame.image.load("assets/square_of_in_check.png")
+check_highlight_image = pygame.image.load("assets/square_of_in_check.png")  
 
 HUMAN_VS_HUMAN = 1
 HUMAN_VS_BOT = 2
@@ -54,7 +54,6 @@ def draw_board(board, highlighted_squares={}):
                 img = piece_images[piece.symbol()]
                 screen.blit(pygame.transform.scale(img, (square_size, square_size)),
                             (col * square_size, row * square_size))
-
     pygame.display.flip()
 
 
@@ -63,7 +62,6 @@ def play_human_vs_human():
     running = True
     selected_square = None
     highlighted_squares = {}
-
 
     while running:
         if board.is_check():
@@ -113,6 +111,7 @@ def play_human_vs_bot(bot_color=chess.WHITE):
         draw_board(board, highlighted_squares)
         
         if board.turn == bot_color and not board.is_game_over():
+            print(bot_color)
             bot_move = get_best_move(board)
             board.push(bot_move)
         else: 

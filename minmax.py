@@ -1,5 +1,6 @@
 import chess
 import random
+import time
 
 zobrist_table = {}
 for piece in ['P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']:
@@ -69,9 +70,13 @@ def get_position_scores_table(piece_type, piece_color):
                         5: queen_scores,
                         4: rook_scores,
                         1: pawn_scores}
+    
+    print("color:", str(piece_color) + ", type: " + str(piece_type))
     if piece_color: # White piece
+        print(piece_position_scores[piece_type])
         return piece_position_scores[piece_type]
     else:
+        print(piece_position_scores[piece_type][::-1])
         return piece_position_scores[piece_type][::-1]
 
 piece_score = {6: 6000, 5: 929, 4: 512, 3: 320, 2: 280, 1: 100}
@@ -202,18 +207,30 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
         transposition_tables[hash_key] = {'value': min_eval, 'depth': depth, 'flag': flag}
         return min_eval
 
+
+
+MAX_TIME = 10
+
 def get_best_move(board, depth=4):
-    """Tìm nước đi tốt nhất với Minimax"""
+    """Tìm nước đi tốt nhất với Minimax, hoặc chọn nước đi ngẫu nhiên nếu hết thời gian"""
     best_move = None
     max_eval = -float("inf")
     alpha, beta = -float("inf"), float("inf")
+    start_time = time.time()
+    print('----------------------------------------')
+    print(pawn_scores[::-1])
+    print('-----------------------------------------')
 
     for move in board.legal_moves:
+        # Kiểm tra nếu vượt quá thời gian giới hạn
+        if time.time() - start_time > MAX_TIME:
+            print("Timeout reached! Taking a random move.")
+            return random.choice(list(board.legal_moves))  # Chọn nước đi ngẫu nhiên
+
         board.push(move)
         eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
         board.pop()
         if eval_score > max_eval:
             max_eval = eval_score
             best_move = move
-
     return best_move
