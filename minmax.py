@@ -1,5 +1,6 @@
 import chess
 import random
+import time
 
 zobrist_table = {}
 for piece in ['P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']:
@@ -17,20 +18,80 @@ zobrist_table['castling_bq'] = random.getrandbits(64)
 # key: zobrist_hash, value = (value, depth, flag, best_move)
 transposition_tables = {}
 
+pawn_scores = [[ 0,   0,   0,   0,   0,   0,   0,   0,],
+            [78,  83,  86,  73, 102,  82,  85,  90],
+            [ 7,  29,  21,  44,  40,  31,  44,   7],
+            [-17,  16,  -2,  15,  14,   0,  15, -13],
+            [-26,   3,  10,   9,   6,   1,   0, -23],
+            [-22,   9,   5, -11, -10,  -2,   3, -19],
+            [-31,   8,  -7, -37, -36, -14,   3, -31],
+            [0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0]]
+
+bishop_scores = [[-59, -78, -82, -76, -23, -107, -37, -50],
+                [-11, 20, 35, -42, -39, 31, 2, -22],
+                [-9, 39, -32, 41, 52, -10, 28, -14],
+                [25, 17, 20, 34, 26, 25, 15, 10],
+                [13, 10, 17, 23, 17, 16, 0, 7],
+                [14, 25, 24, 15, 8, 25, 20, 15],
+                [19, 20, 11, 6, 7, 6, 20, 16],
+                [-7, 2, -15, -12, -14, -15, -10, -10]]
+
+rook_scores = [[35,  29,  33,   4,  37,  33,  56,  50],
+                [55,  29,  56,  67,  55,  62,  34,  60],
+                [19,  35,  28,  33,  45,  27,  25,  15],
+                [0,    5,  16,  13,  18,  -4,  -9,  -6],
+                [-28, -35, -16, -21, -13, -29, -46, -30],
+                [-42, -28, -42, -25, -25, -35, -26, -46],
+                [-53, -38, -31, -26, -29, -43, -44, -53],
+                [-30, -24, -18,   5,  -2, -18, -31, -32]]
+
+queen_scores = [[  6,   1,  -8, -104,  69,  24,  88,  26],
+                [ 14,  32,  60,  -10,  20,  76,  57,  24],
+                [ -2,  43,  32,   60,  72,  63,  43,   2],
+                [  1, -16,  22,   17,  25,  20, -13,  -6],
+                [ -14, -15,  -2,   -5,  -1, -10, -20, -22],
+                [ -30,  -6, -13,  -11, -16, -11, -16, -27],
+                [ -36, -18,   0,  -19, -15, -15, -21, -38],
+                [ -39, -30, -31,  -13, -31, -36, -34, -42]]
+
+
+knight_scores = [[-66, -53, -75, -75, -10, -55, -58, -70],
+                [-3, -6, 100, -36, 4, 62, -4, -14],
+                [10, 67, 1, 74, 73, 27, 62, -2],
+                [24, 24, 45, 37, 33, 41, 25, 17],
+                [-1, 5, 31, 21, 22, 35, 2, 0],
+                [-18, 10, 13, 22, 18, 15, 11, -14],
+                [-23, -15, 2, 0, 2, 0, -23, -20],
+                [-66, -53, -75, -75, -10, -55, -58, -70]]
+
+def get_position_scores_table(piece_type, piece_color):
+    piece_position_scores = {2: knight_scores,
+                        3: bishop_scores,
+                        5: queen_scores,
+                        4: rook_scores,
+                        1: pawn_scores}
+    
+    if piece_color: # White piece
+        return piece_position_scores[piece_type]
+    else:
+        return piece_position_scores[piece_type][::-1]
+
+piece_score = {6: 6000, 5: 929, 4: 512, 3: 320, 2: 280, 1: 100}
 
 def evaluate_board(board):
     """Hàm đánh giá bàn cờ dựa trên giá trị quân cờ"""
-    piece_values = {
-        chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
-        chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 1000
-    }
-
     score = 0
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
-            value = piece_values.get(piece.piece_type, 0)
-            score += value if piece.color == chess.WHITE else -value
+            piece_type = piece.piece_type    
+            piece_position_score = 0
+            if piece_type != 6:  # Skip king position scores
+                piece_position_score = get_position_scores_table(piece_type, piece.color)[square // 8][square % 8]
+            if piece.color == True: # White piece
+                score += piece_score[piece_type] + piece_position_score
+            else:
+                score -= piece_score[piece_type] + piece_position_score
     return score
 
 
@@ -143,19 +204,33 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
         transposition_tables[hash_key] = {'value': min_eval, 'depth': depth, 'flag': flag}
         return min_eval
 
-def get_best_move(board, depth=4):
-    """Tìm nước đi tốt nhất với Minimax"""
+
+
+MAX_TIME = 10
+
+def get_best_move(board, max_depth=4):
     best_move = None
-    max_eval = -float("inf")
+    start_time = time.time()
     alpha, beta = -float("inf"), float("inf")
 
-    for move in board.legal_moves:
-        board.push(move)
-        eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
-        board.pop()
+    for depth in range(1, max_depth + 1):
+        max_eval = -float("inf")
+        current_best_move = None
 
-        if eval_score > max_eval:
-            max_eval = eval_score
-            best_move = move
+        for move in board.legal_moves:
+            if time.time() - start_time > MAX_TIME:
+                print("Timeout reached! Returning the best move found so far.")
+                return best_move if best_move else random.choice(list(board.legal_moves))
+
+            board.push(move)
+            eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
+            board.pop()
+
+            if eval_score > max_eval:
+                max_eval = eval_score
+                current_best_move = move
+
+        if current_best_move:
+            best_move = current_best_move
 
     return best_move

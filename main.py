@@ -12,12 +12,12 @@ pygame.display.set_caption("Chess Game")
 
 piece_images = {}
 for piece in chess.PIECE_SYMBOLS[1:]:
-    piece_images[piece] = pygame.image.load(f'assets/{piece}_white.png')
-    piece_images[piece.upper()] = pygame.image.load(f'assets/{piece}_black.png')
+    piece_images[piece] = pygame.image.load(f'assets/{piece}_black.png')
+    piece_images[piece.upper()] = pygame.image.load(f'assets/{piece}_white.png')
 
 highlight_image = pygame.image.load("assets/square_of_highlight.png")
 kill_highlight_image = pygame.image.load("assets/square_of_kill.png")
-check_highlight_image = pygame.image.load("assets/square_of_in_check.png")
+check_highlight_image = pygame.image.load("assets/square_of_in_check.png")  
 
 HUMAN_VS_HUMAN = 1
 HUMAN_VS_BOT = 2
@@ -54,7 +54,6 @@ def draw_board(board, highlighted_squares={}):
                 img = piece_images[piece.symbol()]
                 screen.blit(pygame.transform.scale(img, (square_size, square_size)),
                             (col * square_size, row * square_size))
-
     pygame.display.flip()
 
 
@@ -63,7 +62,6 @@ def play_human_vs_human():
     running = True
     selected_square = None
     highlighted_squares = {}
-
 
     while running:
         if board.is_check():
@@ -111,36 +109,35 @@ def play_human_vs_bot(bot_color=chess.WHITE):
             highlighted_squares[king_square] = "check"
 
         draw_board(board, highlighted_squares)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and board.turn != bot_color:
-                x, y = pygame.mouse.get_pos()
-                col, row = x // (WIDTH // 8), 7 - (y // (HEIGHT // 8))
-                square = chess.square(col, row)
-
-                if selected_square is None:
-                    selected_square = square
-                    highlighted_squares = {}
-                    for move in board.legal_moves:
-                        if move.from_square == selected_square:
-                            if board.piece_at(move.to_square):
-                                highlighted_squares[move.to_square] = "kill"
-                            else:
-                                highlighted_squares[move.to_square] = "move"
-
-                else:
-                    move = chess.Move(selected_square, square)
-                    if move in board.legal_moves:
-                        board.push(move)
-                    selected_square = None
-                    highlighted_squares = {}
-            draw_board(board, highlighted_squares)
-
+        
         if board.turn == bot_color and not board.is_game_over():
             bot_move = get_best_move(board)
             board.push(bot_move)
+        else: 
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN and board.turn != bot_color:
+                    x, y = pygame.mouse.get_pos()
+                    col, row = x // (WIDTH // 8), 7 - (y // (HEIGHT // 8))
+                    square = chess.square(col, row)
 
+                    if selected_square is None:
+                        selected_square = square
+                        highlighted_squares = {}
+                        for move in board.legal_moves:
+                            if move.from_square == selected_square:
+                                if board.piece_at(move.to_square):
+                                    highlighted_squares[move.to_square] = "kill"
+                                else:
+                                    highlighted_squares[move.to_square] = "move"
+                    else:
+                        move = chess.Move(selected_square, square)
+                        if move in board.legal_moves:
+                            board.push(move)
+                        selected_square = None
+                        highlighted_squares = {}
+                    draw_board(board, highlighted_squares)
         if board.is_game_over():
             print("Game Over!", board.result())
             running = False
