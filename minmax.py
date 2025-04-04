@@ -212,31 +212,39 @@ def minimax_with_aspiration(board, depth, prev_max_eval, margin, maximizing_play
     """
     alpha = prev_max_eval - margin
     beta = prev_max_eval + margin
-    eval_score = minimax(board, depth, alpha, beta, maximizing_player)
-
+    eval_score = minimax(board, depth, alpha, beta, maximizing_player, None, None)
     # Nếu kết quả ngoài phạm vi cửa sổ, thực hiện re-search với cửa sổ toàn phần:
     if eval_score <= alpha or eval_score >= beta:
-        eval_score = minimax(board, depth, -float("inf"), float("inf"), maximizing_player)
+        eval_score = minimax(board, depth, -float("inf"), float("inf"), maximizing_player, None, None)
     return eval_score
 
-def get_best_move(board, depth=5, margin=ASPIRATION_WINDOW_MARGIN):
-    """Tìm nước đi tốt nhất với Minimax"""
+ASPIRATION_WINDOW_MARGIN = 50
+
+MAX_TIME = 10
+
+def get_best_move(board, max_depth=4, margin=ASPIRATION_WINDOW_MARGIN):
     best_move = None
     start_time = time.time()
-    alpha, beta = -float("inf"), float("inf")
+    prev_max_eval = evaluate_board(board)
 
     for depth in range(1, max_depth + 1):
         max_eval = -float("inf")
         current_best_move = None
 
-    for move in board.legal_moves:
-        board.push(move)
-        eval_score = minimax(board, depth - 1, alpha, beta, False)
-        board.pop()
+        for move in board.legal_moves:
+            if time.time() - start_time > MAX_TIME:
+                print("Timeout reached! Returning the best move found so far.")
+                break
+
+            board.push(move)
+            eval_score = minimax_with_aspiration(board, depth - 1, prev_max_eval, margin, False)
+            board.pop()
 
             if eval_score > max_eval:
                 max_eval = eval_score
                 current_best_move = move
+                prev_max_eval = max_eval
+
 
         if current_best_move:
             best_move = current_best_move
