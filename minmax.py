@@ -202,7 +202,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
         transposition_tables[hash_key] = {'value': min_eval, 'depth': depth, 'flag': flag}
         return min_eval
 
-def get_best_move(board, depth=3):
+def get_best_move(board, depth=4):
     """Tìm nước đi tốt nhất với Minimax"""
     best_move = None
     max_eval = -float("inf")
