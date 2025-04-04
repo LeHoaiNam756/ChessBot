@@ -1,5 +1,6 @@
 import chess
 
+ASPIRATION_WINDOW_MARGIN = 50 #Bien do mac dinh
 
 def evaluate_board(board):
     """Hàm đánh giá bàn cờ dựa trên giá trị quân cờ"""
@@ -34,6 +35,7 @@ def minimax(board, depth, alpha, beta, maximizing_player):
             if beta <= alpha:
                 break
         return max_eval
+
     else:
         min_eval = float("inf")
         for move in legal_moves:
@@ -46,20 +48,37 @@ def minimax(board, depth, alpha, beta, maximizing_player):
                 break
         return min_eval
 
+def minimax_with_aspiration(board, depth, prev_best_eval, margin, maximizing_player):
+    """
+        Thực hiện tìm kiếm minimax với Aspiration Window.
+        Nếu kết quả tìm kiếm nằm ngoài cửa sổ (fail high/low), sẽ thực hiện tìm lại với cửa sổ toàn phần.
+    """
+    alpha = prev_best_eval - margin
+    beta = prev_best_eval + margin
+    eval_score = minimax(board, depth, alpha, beta, maximizing_player)
 
-def get_best_move(board, depth=4):
+    # Nếu kết quả ngoài phạm vi cửa sổ, thực hiện re-search với cửa sổ toàn phần:
+    if eval_score <= alpha or eval_score >= beta:
+        eval_score = minimax(board, depth, -float("inf"), float("inf"), maximizing_player)
+    return eval_score
+
+def get_best_move(board, depth=5, margin=ASPIRATION_WINDOW_MARGIN):
     """Tìm nước đi tốt nhất với Minimax"""
     best_move = None
     max_eval = -float("inf")
-    alpha, beta = -float("inf"), float("inf")
+    # Dùng đánh giá hiện tại của bàn cờ làm ước lượng ban đầu
+    prev_best_eval = evaluate_board(board)
 
     for move in board.legal_moves:
         board.push(move)
-        eval_score = minimax(board, depth - 1, alpha, beta, False)
+        # Sử dụng aspiration window trong tìm kiếm ở nhánh này
+        eval_score = minimax_with_aspiration(board, depth - 1, prev_best_eval, margin, False)
         board.pop()
 
         if eval_score > max_eval:
             max_eval = eval_score
             best_move = move
+            #Cập nhật ước lượng cho nhánh sau
+            prev_best_eval = max_eval
 
     return best_move
