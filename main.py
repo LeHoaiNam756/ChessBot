@@ -2,7 +2,7 @@ import pygame
 import chess
 import chess.engine
 
-from minmax import get_best_move
+from minimax import get_best_move
 
 pygame.init()
 
