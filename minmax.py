@@ -48,13 +48,13 @@ def minimax(board, depth, alpha, beta, maximizing_player):
                 break
         return min_eval
 
-def minimax_with_aspiration(board, depth, prev_best_eval, margin, maximizing_player):
+def minimax_with_aspiration(board, depth, prev_max_eval, margin, maximizing_player):
     """
         Thực hiện tìm kiếm minimax với Aspiration Window.
         Nếu kết quả tìm kiếm nằm ngoài cửa sổ (fail high/low), sẽ thực hiện tìm lại với cửa sổ toàn phần.
     """
-    alpha = prev_best_eval - margin
-    beta = prev_best_eval + margin
+    alpha = prev_max_eval - margin
+    beta = prev_max_eval + margin
     eval_score = minimax(board, depth, alpha, beta, maximizing_player)
 
     # Nếu kết quả ngoài phạm vi cửa sổ, thực hiện re-search với cửa sổ toàn phần:
@@ -67,18 +67,18 @@ def get_best_move(board, depth=5, margin=ASPIRATION_WINDOW_MARGIN):
     best_move = None
     max_eval = -float("inf")
     # Dùng đánh giá hiện tại của bàn cờ làm ước lượng ban đầu
-    prev_best_eval = evaluate_board(board)
+    prev_max_eval = evaluate_board(board)
 
     for move in board.legal_moves:
         board.push(move)
         # Sử dụng aspiration window trong tìm kiếm ở nhánh này
-        eval_score = minimax_with_aspiration(board, depth - 1, prev_best_eval, margin, False)
+        eval_score = minimax_with_aspiration(board, depth - 1, prev_max_eval, margin, False)
         board.pop()
 
         if eval_score > max_eval:
             max_eval = eval_score
             best_move = move
             #Cập nhật ước lượng cho nhánh sau
-            prev_best_eval = max_eval
+            prev_max_eval = max_eval
 
     return best_move
