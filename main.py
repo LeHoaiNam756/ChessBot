@@ -111,7 +111,6 @@ def play_human_vs_bot(bot_color=chess.WHITE):
         draw_board(board, highlighted_squares)
         
         if board.turn == bot_color and not board.is_game_over():
-            print(bot_color)
             bot_move = get_best_move(board)
             board.push(bot_move)
         else: 

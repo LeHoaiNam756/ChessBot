@@ -71,12 +71,9 @@ def get_position_scores_table(piece_type, piece_color):
                         4: rook_scores,
                         1: pawn_scores}
     
-    print("color:", str(piece_color) + ", type: " + str(piece_type))
     if piece_color: # White piece
-        print(piece_position_scores[piece_type])
         return piece_position_scores[piece_type]
     else:
-        print(piece_position_scores[piece_type][::-1])
         return piece_position_scores[piece_type][::-1]
 
 piece_score = {6: 6000, 5: 929, 4: 512, 3: 320, 2: 280, 1: 100}
@@ -217,10 +214,6 @@ def get_best_move(board, depth=4):
     max_eval = -float("inf")
     alpha, beta = -float("inf"), float("inf")
     start_time = time.time()
-    print('----------------------------------------')
-    print(pawn_scores[::-1])
-    print('-----------------------------------------')
-
     for move in board.legal_moves:
         # Kiểm tra nếu vượt quá thời gian giới hạn
         if time.time() - start_time > MAX_TIME:
