@@ -183,6 +183,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
             flag = 'exact'
         transposition_tables[hash_key] = {'value': max_eval, 'depth': depth, 'flag': flag}
         return max_eval
+
     else:
         min_eval = float("inf")
         for move in legal_moves:
@@ -204,11 +205,22 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
         transposition_tables[hash_key] = {'value': min_eval, 'depth': depth, 'flag': flag}
         return min_eval
 
+def minimax_with_aspiration(board, depth, prev_max_eval, margin, maximizing_player):
+    """
+        Thực hiện tìm kiếm minimax với Aspiration Window.
+        Nếu kết quả tìm kiếm nằm ngoài cửa sổ (fail high/low), sẽ thực hiện tìm lại với cửa sổ toàn phần.
+    """
+    alpha = prev_max_eval - margin
+    beta = prev_max_eval + margin
+    eval_score = minimax(board, depth, alpha, beta, maximizing_player)
 
+    # Nếu kết quả ngoài phạm vi cửa sổ, thực hiện re-search với cửa sổ toàn phần:
+    if eval_score <= alpha or eval_score >= beta:
+        eval_score = minimax(board, depth, -float("inf"), float("inf"), maximizing_player)
+    return eval_score
 
-MAX_TIME = 10
-
-def get_best_move(board, max_depth=4):
+def get_best_move(board, depth=5, margin=ASPIRATION_WINDOW_MARGIN):
+    """Tìm nước đi tốt nhất với Minimax"""
     best_move = None
     start_time = time.time()
     alpha, beta = -float("inf"), float("inf")
@@ -217,14 +229,10 @@ def get_best_move(board, max_depth=4):
         max_eval = -float("inf")
         current_best_move = None
 
-        for move in board.legal_moves:
-            if time.time() - start_time > MAX_TIME:
-                print("Timeout reached! Returning the best move found so far.")
-                return best_move if best_move else random.choice(list(board.legal_moves))
-
-            board.push(move)
-            eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
-            board.pop()
+    for move in board.legal_moves:
+        board.push(move)
+        eval_score = minimax(board, depth - 1, alpha, beta, False)
+        board.pop()
 
             if eval_score > max_eval:
                 max_eval = eval_score
