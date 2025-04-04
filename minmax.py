@@ -97,7 +97,7 @@ def static_exchange_evaluation(board, move):
     attackers = board.attackers(not board.turn, to_square)
     if attackers:
         # Chọn quân bắt yếu nhất trong danh sách
-        weakest_attacker = min(attackers, key=lambda sq: piece_score.get(board.piece_at(sq).piece_type)) 
+        weakest_attacker = min(attackers, key=lambda sq: piece_score.get(board.piece_at(sq).piece_type))
         attacker_value = piece_score.get(board.piece_at(weakest_attacker).piece_type)
     else:
         attacker_value = 0  # Không bị bắt lại
@@ -301,26 +301,33 @@ def minimax(board, depth, alpha, beta, maximizing_player, hash_key, move):
 
 
 
-MAX_TIME = 1
+MAX_TIME = 10
 
-def get_best_move(board, depth=4):
-    """Tìm nước đi tốt nhất với Minimax, hoặc chọn nước đi ngẫu nhiên nếu hết thời gian"""
+def get_best_move(board, max_depth=4):
     best_move = None
     max_eval = -float("inf")
     alpha, beta = -float("inf"), float("inf")
     start_time = time.time()
-    legal_moves = order_moves(board, depth)
-    for move in legal_moves:
-        # Kiểm tra nếu vượt quá thời gian giới hạn
-        if time.time() - start_time > MAX_TIME:
-            # print("Timeout reached! Taking a random move.")
-            # return random.choice(list(board.legal_moves))  # Chọn nước đi ngẫu nhiên
-            break
+    alpha, beta = -float("inf"), float("inf")
 
-        board.push(move)
-        eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
-        board.pop()
-        if eval_score > max_eval:
-            max_eval = eval_score
-            best_move = move
+    for depth in range(1, max_depth + 1):
+        max_eval = -float("inf")
+        current_best_move = None
+        legal_moves = order_moves(board, depth)
+        for move in legal_moves:
+            if time.time() - start_time > MAX_TIME:
+                print("Timeout reached! Returning the best move found so far.")
+                return best_move if best_move else random.choice(list(board.legal_moves))
+
+            board.push(move)
+            eval_score = minimax(board, depth - 1, alpha, beta, False, None, None)
+            board.pop()
+
+            if eval_score > max_eval:
+                max_eval = eval_score
+                current_best_move = move
+
+        if current_best_move:
+            best_move = current_best_move
+
     return best_move
