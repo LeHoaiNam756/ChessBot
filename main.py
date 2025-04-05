@@ -189,16 +189,18 @@ def play_bot_vs_bot(delay=1000):
 
         if not board.is_game_over():
             if board.turn == chess.WHITE:
-                bot_move = get_best_move(board, 6)
+                bot_move = get_best_move(board, 5)
                 board.push(bot_move)
                 last_move = bot_move  # Update the last move for the white bot
+                draw_board(board, last_move=last_move)
             else:
                 result = engine.play(board, chess.engine.Limit(time=0.1))
                 move = result.move
                 board.push(move)
                 last_move = move  # Update the last move for the black bot
+                draw_board(board, last_move=last_move)
 
-            draw_board(board, last_move=last_move)
+
             pygame.time.delay(delay)
         else:
             print("Game Over!", board.result())
