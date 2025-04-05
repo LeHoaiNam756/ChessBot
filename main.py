@@ -1,6 +1,8 @@
 import pygame
 import chess
 import chess.engine
+import chess.polyglot
+import random
 
 from minmax import *
 
@@ -10,6 +12,7 @@ WIDTH, HEIGHT = 600, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Chess Game")
 STOCKFISH_PATH = "D:/AI/BTL/stockfish-windows-x86-64-avx2/stockfish/stockfish-windows-x86-64-avx2.exe"  # Đổi đường dẫn tới Stockfish
+OPENING_BOOK_PATH = "opening/PetroffOther3.bin"
 
 piece_images = {}
 for piece in chess.PIECE_SYMBOLS[1:]:
@@ -104,6 +107,17 @@ def play_human_vs_human():
     pygame.quit()
 
 
+def get_opening_move(board):
+    try:
+        with chess.polyglot.open_reader(OPENING_BOOK_PATH) as reader:
+            moves = [entry.move for entry in reader.find_all(board)]
+            if moves:
+                print(f"Available opening moves: {[str(move) for move in moves]}")
+                return random.choice(moves)
+    except FileNotFoundError:
+        print(f"Opening book not found at {OPENING_BOOK_PATH}.")
+    return None
+
 def play_human_vs_bot(bot_color=chess.WHITE):
     board = chess.Board()
     running = True
@@ -119,12 +133,20 @@ def play_human_vs_bot(bot_color=chess.WHITE):
         draw_board(board, highlighted_squares, last_move)
 
         if board.turn == bot_color and not board.is_game_over():
-            bot_move = get_best_move(board, 5)
+            # Use the opening book for the first few moves
+            if board.fullmove_number <= 6:  # Limit to the first 6 moves
+                bot_move = get_opening_move(board)
+                if bot_move:
+                    print(f"Bot plays opening move: {bot_move}")
+                else:
+                    bot_move = get_best_move(board, 5)  # Fallback to AI
+            else:
+                bot_move = get_best_move(board, 5)
             board.push(bot_move)
             last_move = bot_move  # Update the last move for the bot
         else:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT:                                                                                                                                                                                                                                                                                                                       
                     running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and board.turn != bot_color:
                     x, y = pygame.mouse.get_pos()

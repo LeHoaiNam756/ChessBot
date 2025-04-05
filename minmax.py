@@ -326,7 +326,7 @@ ASPIRATION_WINDOW_MARGIN = 50
 MAX_TIME = 20
 
 
-def get_best_move(board, max_depth=6, margin=ASPIRATION_WINDOW_MARGIN):
+def get_best_move(board, max_depth=5, margin=ASPIRATION_WINDOW_MARGIN):
     best_move = None
     start_time = time.time()
     prev_max_eval = evaluate_board(board)
