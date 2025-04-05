@@ -98,45 +98,20 @@ def score_move_cached(move, board, depth, tt_move):
     # History heuristic
     return history_heuristic.get((move.from_square, move.to_square), 0)
 
-center_squares = [chess.D4, chess.E4, chess.D5, chess.E5]
 def evaluate_board(board):
-    """Hàm đánh giá bàn cờ, ưu tiên quân có ảnh hưởng lớn nhất trước"""
+    """Hàm đánh giá bàn cờ dựa trên giá trị quân cờ"""
     score = 0
-    influential_moves = []  # Lưu các quân có ảnh hưởng lớn nhất (tấn công, check, central, etc.)
-
-    # Ưu tiên các quân có ảnh hưởng lớn: check, capture, quân gần trung tâm, quân có số nước đi cao
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
             piece_type = piece.piece_type
-            piece_color = piece.color
             piece_position_score = 0
-
-            # Bỏ qua quân vua (king) khi đánh giá vị trí
-            if piece_type != chess.KING:
-                piece_position_score = get_position_scores_table(piece_type, piece_color)[square // 8][square % 8]
-
-            # Ưu tiên quân gây check hoặc chiếu (gây đe dọa trực tiếp đến quân vua đối phương)
-            if board.is_checkmate() or board.gives_check(chess.Move(square, square)):  # Kiểm tra quân đang gây check
-                influential_moves.append(piece)
-
-            # Ưu tiên quân đi vào các ô trung tâm hoặc có tầm ảnh hưởng lớn (queen, rook)
-            if square in center_squares or piece_type in [chess.QUEEN, chess.ROOK, chess.BISHOP]:
-                influential_moves.append(piece)
-
-            # Thêm điểm cho quân khi chúng có tầm ảnh hưởng hoặc kiểm soát nhiều ô
-            if piece_color == chess.WHITE:
+            if piece_type != 6:  # Skip king position scores
+                piece_position_score = get_position_scores_table(piece_type, piece.color)[square // 8][square % 8]
+            if piece.color == True:  # White piece
                 score += piece_score[piece_type] + piece_position_score
             else:
                 score -= piece_score[piece_type] + piece_position_score
-
-    # Sắp xếp các quân có ảnh hưởng nhất
-    influential_moves.sort(key=lambda x: piece_score[x.piece_type], reverse=True)
-
-    # Đảm bảo rằng bạn đánh giá các quân có ảnh hưởng lớn trước
-    for piece in influential_moves:
-        score += piece_score.get(piece.piece_type, 0)
-
     return score
 
 
