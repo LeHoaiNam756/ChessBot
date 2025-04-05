@@ -58,7 +58,7 @@ def evaluate_bot(bot, games=50, stockfish_level=8, opponent_elo=1600):
 
 def my_bot(board):
     """Hàm bot của bạn sử dụng Minimax để chơi"""
-    return get_best_move(board, 5)  # Giả sử đã có hàm Minimax tối ưu
+    return get_best_move(board, 4)  # Giả sử đã có hàm Minimax tối ưu
 
-elo_score = evaluate_bot(my_bot, games=50, stockfish_level=8, opponent_elo=1600)
+elo_score = evaluate_bot(my_bot, games=5, stockfish_level=8, opponent_elo=1600)
 print(f"Bot của bạn có ELO khoảng: {round(elo_score)}")

@@ -9,6 +9,7 @@ pygame.init()
 WIDTH, HEIGHT = 600, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Chess Game")
+STOCKFISH_PATH = "D:/AI/BTL/stockfish-windows-x86-64-avx2/stockfish/stockfish-windows-x86-64-avx2.exe"  # Đổi đường dẫn tới Stockfish
 
 piece_images = {}
 for piece in chess.PIECE_SYMBOLS[1:]:
@@ -111,7 +112,7 @@ def play_human_vs_bot(bot_color=chess.WHITE):
         draw_board(board, highlighted_squares)
         
         if board.turn == bot_color and not board.is_game_over():
-            bot_move = get_best_move(board, 4)
+            bot_move = get_best_move(board, 5)
             board.push(bot_move)
         else: 
             for event in pygame.event.get():
@@ -147,14 +148,24 @@ def play_human_vs_bot(bot_color=chess.WHITE):
 
 def play_bot_vs_bot(delay=10000):
     board = chess.Board()
+    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+    engine.configure({"Skill Level": 8})
     running = True
 
     while running:
         draw_board(board)
 
         if not board.is_game_over():
-            bot_move = get_best_move(board)
-            board.push(bot_move)
+            if board.turn == chess.WHITE:
+                bot_move = get_best_move(board, 6)
+                board.push(bot_move)
+                draw_board(board)
+            else:
+                result = engine.play(board, chess.engine.Limit(time=0.1))
+                move = result.move
+                board.push(move)
+                draw_board(board)
+
             pygame.time.delay(delay)
         else:
             print("Game Over!", board.result())

@@ -12,7 +12,7 @@ from minmax import get_best_move
 ])
 def test_checkmate_in_one(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=3)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Test 2: Đòn chiến thuật Fork (Chĩa)
@@ -22,7 +22,7 @@ def test_checkmate_in_one(fen, best_move):
 ])
 def test_fork(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=3)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Test 3: Đòn Pin
@@ -31,7 +31,7 @@ def test_fork(fen, best_move):
 ])
 def test_pin(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=3)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Test 4: Tàn cuộc chuẩn xác
@@ -40,7 +40,7 @@ def test_pin(fen, best_move):
 ])
 def test_endgame(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=5)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Test 5: Đòn Skewer (Xiên)
@@ -49,7 +49,7 @@ def test_endgame(fen, best_move):
 ])
 def test_skewer(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=3)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Test 6: Đòn hy sinh để tạo ưu thế
@@ -58,7 +58,7 @@ def test_skewer(fen, best_move):
 ])
 def test_sacrifice(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=3)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Test 7: Phòng thủ quan trọng
@@ -67,7 +67,7 @@ def test_sacrifice(fen, best_move):
 ])
 def test_defensive_move(fen, best_move):
     board = chess.Board(fen)
-    move = get_best_move(board, depth=3)
+    move = get_best_move(board)
     assert move == chess.Move.from_uci(best_move)
 
 # Chạy pytest bằng lệnh: pytest test_chess_bot.py
